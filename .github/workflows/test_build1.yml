@@ -1,0 +1,32 @@
+name: Test Kernel Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repoyu Çek
+        uses: actions/checkout@v4
+
+      - name: Bağımlılıkları Kur (crDroid Dokümanından)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick lib32ncurses-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses6 libncurses-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop rsync schedtool squashfs-tools xsltproc zip zlib1g-dev clang lld llvm
+
+      - name: Test Derlemesini Başlat
+        run: |
+          chmod +x ./compile.sh  # Repondaki betiğin adı neyse
+          ./compile.sh
+
+      - name: Çıktıyı Kaydet
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test-Boot-Image
+          path: |
+            out/arch/arm64/boot/boot.img
+            out/*.img
+            out/arch/arm64/boot/Image.gz-dtb
+            
