@@ -11,15 +11,21 @@ jobs:
       - name: Repoyu Çek
         uses: actions/checkout@v4
 
-      - name: Bağımlılıkları Kur
+      - name: Bağımlılıkları Kur ve mkdtboimg Derle
         run: |
           sudo apt-get update
           DEBIAN_FRONTEND=noninteractive sudo apt-get install -y build-essential bc bison ccache curl device-tree-compiler flex git libelf-dev libssl-dev dwarves python3 tar unzip zip
+          
+          # mkdtboimg aracını indirip derle ve sisteme ekle
+          git clone https://android.googlesource.com/platform/system/tools/mkdtimg.git
+          cd mkdtimg
+          gcc -o mkdtboimg mkdtboimg.c
+          sudo mv mkdtboimg /usr/local/bin/
+          cd ..
 
       - name: Kernel Derle (build.sh Kullanarak)
         run: |
           chmod +x ./build.sh
-          # fire_defconfig kullanarak AnyKernel3 zip'i üretir ve eksik Toolchain/Clang'i otomatik indirir
           ./build.sh fire_defconfig -A -a
 
       - name: Çıktıları (AnyKernel3 ZIP) Kaydet
