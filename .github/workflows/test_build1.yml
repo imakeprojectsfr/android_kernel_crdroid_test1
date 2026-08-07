@@ -11,22 +11,23 @@ jobs:
       - name: Repoyu Çek
         uses: actions/checkout@v4
 
-      - name: Bağımlılıkları Kur (crDroid Dokümanından)
+      - name: Bağımlılıkları Kur
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick lib32ncurses-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses6 libncurses-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop rsync schedtool squashfs-tools xsltproc zip zlib1g-dev clang lld llvm
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y build-essential bc bison ccache curl device-tree-compiler flex git libelf-dev libssl-dev dwarves python3 tar unzip zip
 
-      - name: Test Derlemesini Başlat
+      - name: Kernel Derle (build.sh Kullanarak)
         run: |
-          chmod +x ./compile.sh  # Repondaki betiğin adı neyse
-          ./compile.sh
+          chmod +x ./build.sh
+          # fire_defconfig kullanarak AnyKernel3 zip'i üretir ve eksik Toolchain/Clang'i otomatik indirir
+          ./build.sh fire_defconfig -A -a
 
-      - name: Çıktıyı Kaydet
+      - name: Çıktıları (AnyKernel3 ZIP) Kaydet
         uses: actions/upload-artifact@v4
         with:
-          name: Test-Boot-Image
+          name: Flashable-Kernel-ZIP
           path: |
-            out/arch/arm64/boot/boot.img
-            out/*.img
-            out/arch/arm64/boot/Image.gz-dtb
+            dist/*.zip
+            dist/*
+            out/fire/arch/arm64/boot/Image*
             
