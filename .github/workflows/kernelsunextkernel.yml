@@ -115,6 +115,20 @@ jobs:
         run: |
           curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
 
+      - name: Fix Undefined ksu_input_hook Symbol
+        run: |
+          KSU_MAKEFILE="drivers/kernelsu/Makefile"
+          if [ -f "$KSU_MAKEFILE" ]; then
+            if ! grep -q "input_hook" "$KSU_MAKEFILE"; then
+              echo "obj-y += input_hook.o" >> "$KSU_MAKEFILE"
+            fi
+          fi
+          
+          KSU_HEADER="drivers/kernelsu/ksu.h"
+          if [ -f "$KSU_HEADER" ]; then
+            printf '\n#ifndef KSU_INPUT_HOOK_DEFINED\n#define KSU_INPUT_HOOK_DEFINED\nstatic inline void ksu_input_hook(unsigned int type, unsigned int code, int value) {}\n#endif\n' >> "$KSU_HEADER"
+          fi
+
       - name: Path Umount Yamasini Uygula (fs/namespace.c)
         run: |
           NAMESPACE_FILE="fs/namespace.c"
