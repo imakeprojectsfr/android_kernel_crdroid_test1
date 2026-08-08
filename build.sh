@@ -754,7 +754,7 @@ do.systemmount=0
 do.cleanup=0
 do.cleanuponabort=0
 do.unmount=0
-device.name1=${DEVICE}
+device.name1=fire
 supported.versions=
 supported.patchlevels=
 '; }
