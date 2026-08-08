@@ -1,4 +1,4 @@
-Name: KernelsuNextTestRun1
+name: KernelsuNextTestRun1
 
 on:
   workflow_dispatch:
@@ -75,7 +75,7 @@ jobs:
                   
                   for dtbo_file in dtbo_files:
                       if os.path.exists(dtbo_file):
-                          with open(dtbo_file, 'rb') as dtbo_f:
+                          with open(dtbo_f, 'rb') as dtbo_f:
                               f.write(dtbo_f.read())
           
           if __name__ == '__main__':
@@ -164,6 +164,8 @@ EOF
           fi
 
       - name: Kernel Derle (build.sh Patch'leyerek)
+        env:
+          DEVICE: fire
         run: |
           chmod +x ./build.sh
           
@@ -181,4 +183,4 @@ EOF
             dist/*.zip
             dist/*
             out/*/arch/arm64/boot/Image*
-            
+			
