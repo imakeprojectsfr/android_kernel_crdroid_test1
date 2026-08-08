@@ -117,7 +117,7 @@ jobs:
       - name: Kernel Derle (build.sh Kullanarak)
         run: |
           chmod +x ./build.sh
-          # Target config tam olarak firedefconfig1 yapıldı
+          # build.sh handles firedefconfig1 configuration with make defconfig and olddefconfig
           ./build.sh firedefconfig1 -A -a
 
       - name: Çıktıları (AnyKernel3 ZIP) Kaydet
@@ -128,4 +128,3 @@ jobs:
             dist/*.zip
             dist/*
             out/fire/arch/arm64/boot/Image*
-            
