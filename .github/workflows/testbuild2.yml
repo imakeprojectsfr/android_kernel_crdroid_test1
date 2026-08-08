@@ -111,17 +111,15 @@ jobs:
           which mkdtboimg
           mkdtboimg --version 2>/dev/null || echo "  (fallback wrapper in use)"
 
-          
       - name: Kernel Derle (build.sh Patch'leyerek)
         run: |
           chmod +x ./build.sh
           
-          # build.sh içindeki problemli 'make $DEFCONFIG' satırını devre dışı bırakıp cp ile değiştiriyoruz
-          sed -i 's/make "${MAKE_ARGS\[@\]}" "$DEFCONFIG"/cp "$ROOT_DIR\/arch\/$ARCH\/configs\/firedefconfig1" "$OUT_DIR\/.config"/g' ./build.sh
+          # build.sh içindeki hatalı make satırını doğrudan cp komutuyla değiştiriyoruz
+          sed -i 's|make "${MAKE_ARGS\[@\]}" "$DEFCONFIG"|cp "$ROOT_DIR/arch/$ARCH/configs/firedefconfig1" "$OUT_DIR/.config"|g' ./build.sh
           
           # Derlemeyi başlat
           ./build.sh firedefconfig1 -A -a
-          
 
       - name: Çıktıları (AnyKernel3 ZIP) Kaydet
         uses: actions/upload-artifact@v4
@@ -131,3 +129,4 @@ jobs:
             dist/*.zip
             dist/*
             out/*/arch/arm64/boot/Image*
+            
