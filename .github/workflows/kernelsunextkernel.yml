@@ -120,7 +120,7 @@ jobs:
           SELINUX_HIDE="drivers/kernelsu/feature/selinux_hide.c"
           if [ -f "$SELINUX_HIDE" ]; then
             echo "Injecting ksu_input_hook bool variable to $SELINUX_HIDE..."
-            sed -i '1i #include <linux/types.h>\nbool ksu_input_hook __read_mostly = false;' "$SELINUX_HIDE"
+            sed -i '1i #include <linux/types.h>\n#include <linux/cache.h>\nbool ksu_input_hook = false;' "$SELINUX_HIDE"
             echo "✓ Injected ksu_input_hook bool into $SELINUX_HIDE"
           fi
 
@@ -157,3 +157,4 @@ jobs:
             dist/*.zip
             dist/*
             out/*/arch/arm64/boot/Image*
+            
