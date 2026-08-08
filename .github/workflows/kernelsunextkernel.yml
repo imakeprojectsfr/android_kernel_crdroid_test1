@@ -1,4 +1,4 @@
-name: Test Kernel Build - Run 2
+Name: Test Kernel Build - Run 2
 
 on:
   workflow_dispatch:
@@ -111,6 +111,10 @@ jobs:
           which mkdtboimg
           mkdtboimg --version 2>/dev/null || echo "  (fallback wrapper in use)"
 
+      - name: KernelSU Next Entegrasyonu (Legacy / Non-GKI)
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
+
       - name: Kernel Derle (build.sh Patch'leyerek)
         run: |
           chmod +x ./build.sh
@@ -129,3 +133,4 @@ jobs:
             dist/*.zip
             dist/*
             out/*/arch/arm64/boot/Image*
+            
