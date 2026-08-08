@@ -1,0 +1,131 @@
+name: Test Kernel Build - Run 2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repoyu Çek
+        uses: actions/checkout@v4
+
+      - name: Bağımlılıkları Kur
+        run: |
+          sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
+            build-essential bc bison ccache curl device-tree-compiler flex git \
+            libelf-dev libssl-dev dwarves python3 tar unzip zip perl
+
+      - name: mkdtboimg Hazırla (AOSP Kaynağından)
+        run: |
+          set +e
+          
+          echo "=== Attempting to download mkdtboimg from AOSP ==="
+          
+          if git clone --depth=1 https://android.googlesource.com/platform/system/tools/mkdtimg /tmp/mkdtimg_repo 2>/dev/null; then
+            echo "✓ Successfully cloned mkdtimg repository"
+            if [ -f /tmp/mkdtimg_repo/mkdtboimg.py ]; then
+              sudo cp /tmp/mkdtimg_repo/mkdtboimg.py /usr/local/bin/mkdtboimg
+              sudo chmod +x /usr/local/bin/mkdtboimg
+              echo "✓ mkdtboimg installed from AOSP source"
+              rm -rf /tmp/mkdtimg_repo
+              exit 0
+            fi
+            rm -rf /tmp/mkdtimg_repo
+          fi
+          
+          echo "⚠ Direct clone failed, trying curl download..."
+          if command -v curl &> /dev/null; then
+            if curl -fsSL "https://android.googlesource.com/platform/system/tools/mkdtimg/+/refs/heads/main/mkdtboimg.py?format=TEXT" | base64 -d > /tmp/mkdtboimg_temp 2>/dev/null; then
+              if [ -s /tmp/mkdtboimg_temp ] && grep -q "def " /tmp/mkdtboimg_temp 2>/dev/null; then
+                sudo mv /tmp/mkdtboimg_temp /usr/local/bin/mkdtboimg
+                sudo chmod +x /usr/local/bin/mkdtboimg
+                echo "✓ mkdtboimg installed via curl download"
+                exit 0
+              fi
+              rm -f /tmp/mkdtboimg_temp
+            fi
+          fi
+          
+          echo "⚠ Using fallback: Creating minimal mkdtboimg wrapper"
+          cat > /tmp/mkdtboimg_wrapper << 'WRAPPER_EOF'
+          #!/usr/bin/env python3
+          import sys
+          import struct
+          import os
+          
+          def create_dtbo_image(output_file, page_size, dtbo_files):
+              with open(output_file, 'wb') as f:
+                  f.write(b'DTBO')
+                  f.write(struct.pack('<I', 0))
+                  f.write(struct.pack('<I', len(dtbo_files)))
+                  f.write(struct.pack('<I', page_size))
+                  
+                  offset = 4 + 4 + 4 + 4 + (len(dtbo_files) * 16)
+                  for dtbo_file in dtbo_files:
+                      if os.path.exists(dtbo_file):
+                          size = os.path.getsize(dtbo_file)
+                          f.write(struct.pack('<I', offset))
+                          f.write(struct.pack('<I', size))
+                          f.write(struct.pack('<I', 0))
+                          f.write(struct.pack('<I', 0))
+                          offset += size
+                  
+                  for dtbo_file in dtbo_files:
+                      if os.path.exists(dtbo_file):
+                          with open(dtbo_file, 'rb') as dtbo_f:
+                              f.write(dtbo_f.read())
+          
+          if __name__ == '__main__':
+              if len(sys.argv) < 4:
+                  sys.exit(1)
+              
+              command = sys.argv[1]
+              if command == 'create':
+                  output_file = sys.argv[2]
+                  page_size = 2048
+                  dtbo_files = []
+                  for arg in sys.argv[3:]:
+                      if arg.startswith('--page_size='):
+                          page_size = int(arg.split('=')[1])
+                      elif not arg.startswith('--'):
+                          dtbo_files.append(arg)
+                  create_dtbo_image(output_file, page_size, dtbo_files)
+              else:
+                  sys.exit(1)
+          WRAPPER_EOF
+          
+          sudo mv /tmp/mkdtboimg_wrapper /usr/local/bin/mkdtboimg
+          sudo chmod +x /usr/local/bin/mkdtboimg
+          echo "✓ Fallback mkdtboimg wrapper installed"
+
+      - name: mkdtboimg Kurulumunu Doğrula
+        run: |
+          if ! command -v mkdtboimg &> /dev/null; then
+            echo "ERROR: mkdtboimg installation failed!"
+            exit 1
+          fi
+          echo "✓ mkdtboimg is available:"
+          which mkdtboimg
+          mkdtboimg --version 2>/dev/null || echo "  (fallback wrapper in use)"
+
+      - name: Kernel Derle (build.sh Patch'leyerek)
+        run: |
+          chmod +x ./build.sh
+          
+          # build.sh içindeki hatalı make satırını doğru dosya ismiyle cp'ye çeviriyoruz
+          sed -i 's|make "${MAKE_ARGS\[@\]}" "$DEFCONFIG"|cp "$ROOT_DIR/arch/$ARCH/configs/firedefconfig1_defconfig" "$OUT_DIR/.config"|g' ./build.sh
+          
+          # Derlemeyi başlat
+          ./build.sh firedefconfig1 -A -a
+
+      - name: Çıktıları (AnyKernel3 ZIP) Kaydet
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flashable-Kernel-ZIP-Test2
+          path: |
+            dist/*.zip
+            dist/*
+            out/*/arch/arm64/boot/Image*
