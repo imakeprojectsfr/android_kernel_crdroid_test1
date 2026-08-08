@@ -115,6 +115,54 @@ jobs:
         run: |
           curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
 
+      - name: Path Umount Yamasını Uygula (fs/namespace.c)
+        run: |
+          NAMESPACE_FILE="fs/namespace.c"
+          if [ -f "$NAMESPACE_FILE" ]; then
+            if ! grep -q "int path_umount" "$NAMESPACE_FILE"; then
+              echo "Applying path_umount patch..."
+              cat << 'EOF' >> "$NAMESPACE_FILE"
+
+/* KernelSU Path Umount Backport */
+static int can_umount(const struct path *path, int flags)
+{
+	struct mount *mnt = real_mount(path->mnt);
+
+	if (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))
+		return -EINVAL;
+	if (!may_mount())
+		return -EPERM;
+	if (path->dentry != path->mnt->mnt_root)
+		return -EINVAL;
+	if (!check_mnt(mnt))
+		return -EINVAL;
+	if (mnt->mnt.mnt_flags & MNT_LOCKED)
+		return -EINVAL;
+	if (flags & MNT_FORCE && !capable(CAP_SYS_ADMIN))
+		return -EPERM;
+	return 0;
+}
+
+int path_umount(struct path *path, int flags)
+{
+	struct mount *mnt = real_mount(path->mnt);
+	int ret;
+
+	ret = can_umount(path, flags);
+	if (!ret)
+		ret = do_umount(mnt, flags);
+
+	dput(path->dentry);
+	mntput_no_expire(mnt);
+	return ret;
+}
+EOF
+              echo "✓ path_umount patch applied successfully"
+            else
+              echo "ℹ path_umount already exists, skipping."
+            fi
+          fi
+
       - name: Kernel Derle (build.sh Patch'leyerek)
         run: |
           chmod +x ./build.sh
