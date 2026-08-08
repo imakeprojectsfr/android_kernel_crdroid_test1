@@ -20,11 +20,10 @@ jobs:
 
       - name: mkdtboimg Hazırla (AOSP Kaynağından)
         run: |
-          set +e  # Hata durumunda script'in hemen durmasını engelle
+          set +e
           
           echo "=== Attempting to download mkdtboimg from AOSP ==="
           
-          # Yöntem 1: Doğrudan git clone
           if git clone --depth=1 https://android.googlesource.com/platform/system/tools/mkdtimg /tmp/mkdtimg_repo 2>/dev/null; then
             echo "✓ Successfully cloned mkdtimg repository"
             if [ -f /tmp/mkdtimg_repo/mkdtboimg.py ]; then
@@ -37,7 +36,6 @@ jobs:
             rm -rf /tmp/mkdtimg_repo
           fi
           
-          # Yöntem 2: curl ile indirme
           echo "⚠ Direct clone failed, trying curl download..."
           if command -v curl &> /dev/null; then
             if curl -fsSL "https://android.googlesource.com/platform/system/tools/mkdtimg/+/refs/heads/main/mkdtboimg.py?format=TEXT" | base64 -d > /tmp/mkdtboimg_temp 2>/dev/null; then
@@ -51,7 +49,6 @@ jobs:
             fi
           fi
           
-          # Yöntem 3: Python Wrapper Yedekleme
           echo "⚠ Using fallback: Creating minimal mkdtboimg wrapper"
           cat > /tmp/mkdtboimg_wrapper << 'WRAPPER_EOF'
           #!/usr/bin/env python3
@@ -118,13 +115,15 @@ jobs:
         run: |
           chmod +x ./build.sh
           
-          # Out klasörünü oluşturup config dosyasını önceden yerleştiriyoruz (.config hatasını önlemek için)
-          mkdir -p out/firedefconfig1
-          mkdir -p out/fire
-          cp arch/arm64/configs/firedefconfig1 out/firedefconfig1/.config
-          cp arch/arm64/configs/firedefconfig1 out/fire/.config
+          # 1. Önce doğrudan Makefile üzerinden defconfig'i sistem genelinde oluştur
+          make ARCH=arm64 firedefconfig1
           
-          # build.sh handles firedefconfig1 configuration with make defconfig and olddefconfig
+          # 2. Garantilemek için varsayılan çıktı klasörlerine de kopyala
+          mkdir -p out/firedefconfig1 out/fire
+          cp .config out/firedefconfig1/.config
+          cp .config out/fire/.config
+          
+          # 3. Derlemeyi başlat
           ./build.sh firedefconfig1 -A -a
 
       - name: Çıktıları (AnyKernel3 ZIP) Kaydet
@@ -135,4 +134,3 @@ jobs:
             dist/*.zip
             dist/*
             out/*/arch/arm64/boot/Image*
-            
