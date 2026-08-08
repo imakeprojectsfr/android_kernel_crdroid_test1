@@ -1,4 +1,4 @@
-Name: Test Kernel Build - Run 2
+Name: KernelsuNextTestRun1
 
 on:
   workflow_dispatch:
@@ -176,7 +176,7 @@ EOF
       - name: Çıktıları (AnyKernel3 ZIP) Kaydet
         uses: actions/upload-artifact@v4
         with:
-          name: Flashable-Kernel-ZIP-Test2
+          name: Flashable-Kernelsukernel-1
           path: |
             dist/*.zip
             dist/*
