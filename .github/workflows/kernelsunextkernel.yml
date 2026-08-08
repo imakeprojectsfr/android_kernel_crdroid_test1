@@ -8,17 +8,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Repoyu Çek
+      - name: Repoyu Cek
         uses: actions/checkout@v4
 
-      - name: Bağımlılıkları Kur
+      - name: Bagimliliklari Kur
         run: |
           sudo apt-get update
           DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
             build-essential bc bison ccache curl device-tree-compiler flex git \
             libelf-dev libssl-dev dwarves python3 tar unzip zip perl
 
-      - name: mkdtboimg Hazırla (AOSP Kaynağından)
+      - name: mkdtboimg Hazirla (AOSP Kaynagindan)
         run: |
           set +e
           
@@ -75,7 +75,7 @@ jobs:
                   
                   for dtbo_file in dtbo_files:
                       if os.path.exists(dtbo_file):
-                          with open(dtbo_f, 'rb') as dtbo_f:
+                          with open(dtbo_file, 'rb') as dtbo_f:
                               f.write(dtbo_f.read())
           
           if __name__ == '__main__':
@@ -101,7 +101,7 @@ jobs:
           sudo chmod +x /usr/local/bin/mkdtboimg
           echo "✓ Fallback mkdtboimg wrapper installed"
 
-      - name: mkdtboimg Kurulumunu Doğrula
+      - name: mkdtboimg Kurulumunu Dogrula
         run: |
           if ! command -v mkdtboimg &> /dev/null; then
             echo "ERROR: mkdtboimg installation failed!"
@@ -115,67 +115,32 @@ jobs:
         run: |
           curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
 
-      - name: Path Umount Yamasını Uygula (fs/namespace.c)
+      - name: Path Umount Yamasini Uygula (fs/namespace.c)
         run: |
           NAMESPACE_FILE="fs/namespace.c"
           if [ -f "$NAMESPACE_FILE" ]; then
             if ! grep -q "int path_umount" "$NAMESPACE_FILE"; then
               echo "Applying path_umount patch..."
-              cat << 'EOF' >> "$NAMESPACE_FILE"
-
-/* KernelSU Path Umount Backport */
-static int can_umount(const struct path *path, int flags)
-{
-	struct mount *mnt = real_mount(path->mnt);
-
-	if (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))
-		return -EINVAL;
-	if (!may_mount())
-		return -EPERM;
-	if (path->dentry != path->mnt->mnt_root)
-		return -EINVAL;
-	if (!check_mnt(mnt))
-		return -EINVAL;
-	if (mnt->mnt.mnt_flags & MNT_LOCKED)
-		return -EINVAL;
-	if (flags & MNT_FORCE && !capable(CAP_SYS_ADMIN))
-		return -EPERM;
-	return 0;
-}
-
-int path_umount(struct path *path, int flags)
-{
-	struct mount *mnt = real_mount(path->mnt);
-	int ret;
-
-	ret = can_umount(path, flags);
-	if (!ret)
-		ret = do_umount(mnt, flags);
-
-	dput(path->dentry);
-	mntput_no_expire(mnt);
-	return ret;
-}
-EOF
+              printf '\n/* KernelSU Path Umount Backport */\nstatic int can_umount(const struct path *path, int flags)\n{\n\tstruct mount *mnt = real_mount(path->mnt);\n\tif (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))\n\t\treturn -EINVAL;\n\tif (!may_mount())\n\t\treturn -EPERM;\n\tif (path->dentry != path->mnt->mnt_root)\n\t\treturn -EINVAL;\n\tif (!check_mnt(mnt))\n\t\treturn -EINVAL;\n\tif (mnt->mnt.mnt_flags & MNT_LOCKED)\n\t\treturn -EINVAL;\n\tif (flags & MNT_FORCE && !capable(CAP_SYS_ADMIN))\n\t\treturn -EPERM;\n\treturn 0;\n}\n\nint path_umount(struct path *path, int flags)\n{\n\tstruct mount *mnt = real_mount(path->mnt);\n\tint ret;\n\tret = can_umount(path, flags);\n\tif (!ret)\n\t\tret = do_umount(mnt, flags);\n\tdput(path->dentry);\n\tmntput_no_expire(mnt);\n\treturn ret;\n}\n' >> "$NAMESPACE_FILE"
               echo "✓ path_umount patch applied successfully"
             else
               echo "ℹ path_umount already exists, skipping."
             fi
           fi
 
-      - name: Kernel Derle (build.sh Patch'leyerek)
+      - name: Kernel Derle (build.sh Patchleyerek)
         env:
           DEVICE: fire
         run: |
           chmod +x ./build.sh
           
-          # build.sh içindeki hatalı make satırını doğru dosya ismiyle cp'ye çeviriyoruz
+          # build.sh icindeki hatali make satirini dogru dosya ismiyle cp ye ceviriyoruz
           sed -i 's|make "${MAKE_ARGS\[@\]}" "$DEFCONFIG"|cp "$ROOT_DIR/arch/$ARCH/configs/firedefconfig1_defconfig" "$OUT_DIR/.config"|g' ./build.sh
           
-          # Derlemeyi başlat
+          # Derlemeyi baslat
           ./build.sh firedefconfig1 -A -a
 
-      - name: Çıktıları (AnyKernel3 ZIP) Kaydet
+      - name: Ciktilari (AnyKernel3 ZIP) Kaydet
         uses: actions/upload-artifact@v4
         with:
           name: Flashable-Kernelsukernel-1
@@ -183,4 +148,3 @@ EOF
             dist/*.zip
             dist/*
             out/*/arch/arm64/boot/Image*
-			
