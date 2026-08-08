@@ -117,6 +117,13 @@ jobs:
       - name: Kernel Derle (build.sh Kullanarak)
         run: |
           chmod +x ./build.sh
+          
+          # Out klasörünü oluşturup config dosyasını önceden yerleştiriyoruz (.config hatasını önlemek için)
+          mkdir -p out/firedefconfig1
+          mkdir -p out/fire
+          cp arch/arm64/configs/firedefconfig1 out/firedefconfig1/.config
+          cp arch/arm64/configs/firedefconfig1 out/fire/.config
+          
           # build.sh handles firedefconfig1 configuration with make defconfig and olddefconfig
           ./build.sh firedefconfig1 -A -a
 
@@ -127,4 +134,5 @@ jobs:
           path: |
             dist/*.zip
             dist/*
-            out/fire/arch/arm64/boot/Image*
+            out/*/arch/arm64/boot/Image*
+            
