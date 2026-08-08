@@ -119,9 +119,9 @@ jobs:
         run: |
           SELINUX_HIDE="drivers/kernelsu/feature/selinux_hide.c"
           if [ -f "$SELINUX_HIDE" ]; then
-            echo "Injecting inline stub to $SELINUX_HIDE..."
-            sed -i '1i static inline void ksu_input_hook(unsigned int type, unsigned int code, int value) {}' "$SELINUX_HIDE"
-            echo "✓ Injected inline stub into $SELINUX_HIDE"
+            echo "Injecting ksu_input_hook bool variable to $SELINUX_HIDE..."
+            sed -i '1i #include <linux/types.h>\nbool ksu_input_hook __read_mostly = false;' "$SELINUX_HIDE"
+            echo "✓ Injected ksu_input_hook bool into $SELINUX_HIDE"
           fi
 
       - name: Path Umount Yamasini Uygula (fs/namespace.c)
